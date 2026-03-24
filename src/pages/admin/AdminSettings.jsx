@@ -29,7 +29,8 @@ export default function AdminSettings() {
   const fetchSettings = async () => {
     try {
       const response = await api.get('/admin/settings');
-      setSettings(response.data.settings || settings);
+      const data = response.data.data?.settings || response.data.settings || settings;
+      setSettings({ ...settings, ...data });
     } catch (err) {
       console.error('Failed to fetch settings:', err);
     } finally {
@@ -41,10 +42,13 @@ export default function AdminSettings() {
     setSaving(true);
     try {
       await api.put('/admin/settings', {
-        ...settings,
+        siteName: settings.siteName,
+        siteUrl: settings.siteUrl,
+        supportEmail: settings.supportEmail,
         minDeposit: parseFloat(settings.minDeposit),
         minOrder: parseFloat(settings.minOrder),
         referralBonus: parseFloat(settings.referralBonus),
+        maintenanceMode: settings.maintenanceMode,
       });
       toast.success('Lưu cài đặt thành công');
     } catch (err) {

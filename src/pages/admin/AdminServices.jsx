@@ -44,7 +44,9 @@ export default function AdminServices() {
   const fetchServices = async () => {
     try {
       const response = await api.get('/admin/services');
-      setServices(response.data.data?.services || response.data.services || []);
+      const raw = response.data.data?.services || response.data.services || [];
+      // Normalize: server returns _id, client uses id
+      setServices(raw.map(s => ({ ...s, id: s._id || s.id })));
     } catch (err) {
       console.error('Failed to fetch services:', err);
       setServices(DEMO_SERVICES);
@@ -65,11 +67,11 @@ export default function AdminServices() {
       name: service.name,
       category: service.category,
       description: service.description || '',
-      price: String(service.price),
-      min: String(service.min),
-      max: String(service.max),
-      avgTime: service.avgTime || '',
-      active: service.active !== false,
+      price: String(service.pricePer1k || service.price || ''),
+      min: String(service.minOrder || service.min || ''),
+      max: String(service.maxOrder || service.max || ''),
+      avgTime: service.averageTime || service.avgTime || '',
+      active: service.status === 'active' || service.active !== false,
     });
     setEditModal(true);
   };
@@ -82,21 +84,27 @@ export default function AdminServices() {
   const saveService = async () => {
     setSaving(true);
     const data = {
-      ...form,
-      price: parseFloat(form.price),
-      min: parseInt(form.min),
-      max: parseInt(form.max),
+      name: form.name,
+      category: form.category,
+      description: form.description,
+      pricePer1k: parseFloat(form.price),
+      minOrder: parseInt(form.min),
+      maxOrder: parseInt(form.max),
+      averageTime: form.avgTime,
+      status: form.active ? 'active' : 'inactive',
     };
     try {
       if (selectedService) {
         const response = await api.put(`/admin/services/${selectedService.id}`, data);
+        const updated = response.data.data?.service || response.data.data;
         setServices((prev) =>
-          prev.map((s) => (s.id === selectedService.id ? { ...s, ...response.data.service } : s))
+          prev.map((s) => (s.id === selectedService.id ? { ...s, ...updated } : s))
         );
         toast.success('Cập nhật dịch vụ thành công');
       } else {
         const response = await api.post('/admin/services', data);
-        setServices((prev) => [...prev, response.data.service]);
+        const newService = response.data.data?.service || response.data.data;
+        setServices((prev) => [...prev, { ...newService, id: newService._id }]);
         toast.success('Tạo dịch vụ thành công');
       }
       setEditModal(false);
@@ -110,11 +118,12 @@ export default function AdminServices() {
 
   const toggleActive = async (service) => {
     try {
-      await api.put(`/admin/services/${service.id}`, { active: !service.active });
+      const newStatus = (service.status === 'active' || service.active !== false) ? 'inactive' : 'active';
+      await api.put(`/admin/services/${service.id}`, { status: newStatus });
       setServices((prev) =>
-        prev.map((s) => (s.id === service.id ? { ...s, active: !s.active } : s))
+        prev.map((s) => (s.id === service.id ? { ...s, status: newStatus } : s))
       );
-      toast.success(`Đã ${service.active ? 'tắt' : 'bật'} dịch vụ`);
+      toast.success(`Đã ${newStatus === 'active' ? 'bật' : 'tắt'} dịch vụ`);
     } catch (err) {
       toast.error('Thay đổi trạng thái dịch vụ thất bại');
     }
@@ -190,14 +199,14 @@ export default function AdminServices() {
                       <Badge status={service.category}>{service.category}</Badge>
                     </Table.Cell>
                     <Table.Cell className="text-teal font-medium">
-                      {formatCurrency(service.price)}
+                      {formatCurrency(service.pricePer1k || service.price)}
                     </Table.Cell>
-                    <Table.Cell>{service.min}</Table.Cell>
-                    <Table.Cell>{service.max?.toLocaleString()}</Table.Cell>
-                    <Table.Cell className="text-xs">{service.avgTime || '~24h'}</Table.Cell>
+                    <Table.Cell>{service.minOrder || service.min}</Table.Cell>
+                    <Table.Cell>{(service.maxOrder || service.max)?.toLocaleString()}</Table.Cell>
+                    <Table.Cell className="text-xs">{service.averageTime || service.avgTime || '~24h'}</Table.Cell>
                     <Table.Cell>
-                      <Badge status={service.active !== false ? 'active' : 'inactive'}>
-                        {service.active !== false ? 'Active' : 'Inactive'}
+                      <Badge status={service.status === 'active' || service.active !== false ? 'active' : 'inactive'}>
+                        {service.status === 'active' || service.active !== false ? 'Active' : 'Inactive'}
                       </Badge>
                     </Table.Cell>
                     <Table.Cell>
@@ -206,7 +215,7 @@ export default function AdminServices() {
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => toggleActive(service)}>
-                          {service.active !== false ? (
+                          {service.status === 'active' || service.active !== false ? (
                             <ToggleRight className="w-5 h-5 text-teal" />
                           ) : (
                             <ToggleLeft className="w-5 h-5 text-text-muted" />

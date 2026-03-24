@@ -23,11 +23,17 @@ export default function Dashboard() {
     try {
       const [ordersRes, statsRes, servicesRes] = await Promise.all([
         api.get('/orders?limit=5'),
-        api.get('/orders/stats'),
+        api.get('/orders'),
         api.get('/services'),
       ]);
       setOrders(ordersRes.data?.data?.orders || []);
-      setStats(statsRes.data?.data?.stats || { totalOrders: 0, pendingOrders: 0, processingOrders: 0, completedOrders: 0 });
+      const allOrders = ordersRes.data?.data?.orders || [];
+      setStats({
+        totalOrders: ordersRes.data?.data?.total || allOrders.length,
+        pendingOrders: allOrders.filter(o => o.status === 'Pending').length,
+        processingOrders: allOrders.filter(o => o.status === 'Processing').length,
+        completedOrders: allOrders.filter(o => o.status === 'Completed').length,
+      });
       setServices(servicesRes.data?.data?.services || []);
     } catch (err) {
       console.error('Dashboard fetch error:', err);

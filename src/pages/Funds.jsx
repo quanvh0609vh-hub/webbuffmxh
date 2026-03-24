@@ -42,7 +42,7 @@ export default function Funds() {
 
     timerRef.current = setInterval(async () => {
       try {
-        const res = await api.get('/funds/transactions');
+        const res = await api.get('/user/payments');
         const txList = res.data.data?.transactions || res.data.transactions || [];
         const newTx = txList.find(tx =>
           tx.transactionId === qrData.paymentCode &&

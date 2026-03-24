@@ -104,6 +104,7 @@ body {
 /* Glass effect */
 .glass {
   background: rgba(30, 30, 50, 0.6);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(45, 45, 68, 0.5);
 }
@@ -117,6 +118,7 @@ input[type='number']::-webkit-outer-spin-button {
 
 input[type='number'] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Card hover effect */
@@ -137,6 +139,7 @@ input[type='number'] {
 /* Overlay */
 .modal-overlay {
   background: rgba(15, 15, 26, 0.85);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
